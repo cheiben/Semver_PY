@@ -11,4 +11,4 @@ echo "Git hooks installed successfully."
 #After cloning the repository, run the following command to set up Git hooks:
 
 #```bash
-# ./install-hooks.sh ```
+# chmod +x ./install-hooks.sh  ```

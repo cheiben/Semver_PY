@@ -36,4 +36,7 @@ export PRE_PUSH_ACTIVE=true
 echo "Pushing changes and tags to remote..."
 git push --follow-tags
 
+echo "DEBUG: Current branch state before push:" >> /tmp/pre-push.log
+git log -1 >> /tmp/pre-push.log
+
 chmod +x .git/hooks/pre-push

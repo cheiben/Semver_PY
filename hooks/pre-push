@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Ensure BUMP_TYPE is provided
+if [ -z "$BUMP_TYPE" ]; then
+    echo "Error: BUMP_TYPE is not set. Use BUMP_TYPE=major|minor|patch git push."
+    exit 1
+fi
+
+# Validate BUMP_TYPE
+if [[ "$BUMP_TYPE" != "major" && "$BUMP_TYPE" != "minor" && "$BUMP_TYPE" != "patch" ]]; then
+    echo "Error: Invalid BUMP_TYPE value. Use major, minor, or patch."
+    exit 1
+fi
+
+# Skip the hook if it's re-triggered by the same push operation
+if [ "$PRE_PUSH_ACTIVE" == "true" ]; then
+    echo "Skipping pre-push hook during recursive push."
+    exit 0
+fi
+
+echo "Running pre-push hook with BUMP_TYPE=$BUMP_TYPE..."
+
+# Run the Python script to bump the version
+python3 bump_version.py "$BUMP_TYPE"
+
+# Check if the Python script succeeded
+if [ $? -ne 0 ]; then
+    echo "Version bump script failed. Aborting push."
+    exit 1
+fi
+
+# Mark the hook as active to prevent recursion
+export PRE_PUSH_ACTIVE=true
+
+# Push the new commit and tag
+echo "Pushing changes and tags to remote..."
+git push --follow-tags
+
+chmod +x .git/hooks/pre-push

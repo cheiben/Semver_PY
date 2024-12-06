@@ -37,4 +37,4 @@ echo "pre-push hook installed successfully."
 ## Setting Up Git Hooks
 #After cloning the repository, run the following command to set up Git hooks:
 
-# chmod +x ./install-hooks.sh  ```
+##./install-hooks.sh##

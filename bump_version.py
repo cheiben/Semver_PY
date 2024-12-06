@@ -59,9 +59,7 @@ if __name__ == "__main__":
         # Commit the updated VERSION file and create a new Git tag
         subprocess.run(["git", "add", version_file], check=True)
         subprocess.run(["git", "commit", "-m", f"Bump version to {new_version}"], check=True)
-        subprocess.run(["git", "tag", new_tag], check=True)
         subprocess.run(["git", "tag", "-a", new_tag, "-m", f"Release {new_version}"], check=True)
-
 
     except Exception as e:
         print(f"Error: {e}")

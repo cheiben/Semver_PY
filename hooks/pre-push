@@ -1,42 +1,67 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Ensure BUMP_TYPE is provided
-if [ -z "$BUMP_TYPE" ]; then
-    echo "Error: BUMP_TYPE is not set. Use BUMP_TYPE=major|minor|patch git push."
+# Set strict mode for better error handling
+set -euo pipefail
+
+# Define constants
+readonly VALID_BUMP_TYPES=("major" "minor" "patch")
+
+# Function to display usage and exit
+usage() {
+    echo "Error: BUMP_TYPE is required and must be one of: ${VALID_BUMP_TYPES[*]}"
+    echo "Usage: BUMP_TYPE=<type> git push"
     exit 1
-fi
+}
 
 # Validate BUMP_TYPE
-if [[ "$BUMP_TYPE" != "major" && "$BUMP_TYPE" != "minor" && "$BUMP_TYPE" != "patch" ]]; then
-    echo "Error: Invalid BUMP_TYPE value. Use major, minor, or patch."
-    exit 1
-fi
+validate_bump_type() {
+    local bump_type="$1"
+    
+    # Check if BUMP_TYPE is set
+    if [[ -z "$bump_type" ]]; then
+        usage
+    fi
+    
+    # Check if BUMP_TYPE is valid
+    local valid=false
+    for type in "${VALID_BUMP_TYPES[@]}"; do
+        if [[ "$bump_type" == "$type" ]]; then
+            valid=true
+            break
+        fi
+    done
+    
+    if [[ "$valid" == false ]]; then
+        usage
+    fi
+}
 
-# Skip the hook if it's re-triggered by the same push operation
-if [ "$PRE_PUSH_ACTIVE" == "true" ]; then
-    echo "Skipping pre-push hook during recursive push."
-    exit 0
-fi
+# Main script execution
+main() {
+    # Skip if this is a recursive push
+    if [[ "${PRE_PUSH_ACTIVE:-false}" == "true" ]]; then
+        echo "Skipping pre-push hook during recursive push."
+        exit 0
+    fi
 
-echo "Running pre-push hook with BUMP_TYPE=$BUMP_TYPE..."
+    # Validate bump type
+    validate_bump_type "${BUMP_TYPE:-}"
 
-# Run the Python script to bump the version
-python3 bump_version.py "$BUMP_TYPE"
+    echo "Running pre-push hook with BUMP_TYPE=${BUMP_TYPE}..."
 
-# Check if the Python script succeeded
-if [ $? -ne 0 ]; then
-    echo "Version bump script failed. Aborting push."
-    exit 1
-fi
+    # Run version bump script
+    if ! python3 bump_version.py "$BUMP_TYPE"; then
+        echo "Version bump script failed. Aborting push."
+        exit 1
+    fi
 
-# Mark the hook as active to prevent recursion
-export PRE_PUSH_ACTIVE=true
+    # Mark hook as active and push changes
+    export PRE_PUSH_ACTIVE=true
+    git push --follow-tags
+}
 
-# Push the new commit and tag
-echo "Pushing changes and tags to remote..."
-git push --follow-tags
+# Execute main function
+main
 
-echo "DEBUG: Current branch state before push:" >> /tmp/pre-push.log
-git log -1 >> /tmp/pre-push.log
-
+# Ensure hook is executable (optional, typically done during setup)
 chmod +x .git/hooks/pre-push
